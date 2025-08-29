@@ -1190,14 +1190,69 @@ class WPLM_Enhanced_Admin_Manager {
         $this->subscription_system->ajax_get_subscriptions();
     }
     public function ajax_get_activity_logs() { wp_send_json(['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []]); }
-    public function ajax_add_customer() { wp_send_json_success(['message' => 'Customer added successfully']); }
-    public function ajax_edit_customer() { wp_send_json_success(['message' => 'Customer updated successfully']); }
-    public function ajax_delete_customer() { wp_send_json_success(['message' => 'Customer deleted successfully']); }
-    public function ajax_add_subscription() { wp_send_json_success(['message' => 'Subscription added successfully']); }
-    public function ajax_edit_subscription() { wp_send_json_success(['message' => 'Subscription updated successfully']); }
-    public function ajax_delete_subscription() { wp_send_json_success(['message' => 'Subscription deleted successfully']); }
-    public function ajax_toggle_status() { wp_send_json_success(['message' => 'Status toggled successfully']); }
-    public function ajax_bulk_action() { wp_send_json_success(['message' => 'Bulk action completed successfully']); }
+    public function ajax_add_customer() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('edit_wplm_licenses')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the customer management system.'], 501); 
+    }
+    
+    public function ajax_edit_customer() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('edit_wplm_licenses')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the customer management system.'], 501); 
+    }
+    
+    public function ajax_delete_customer() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('delete_wplm_licenses')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the customer management system.'], 501); 
+    }
+    
+    public function ajax_add_subscription() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('manage_wplm_subscriptions')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the subscription management system.'], 501); 
+    }
+    
+    public function ajax_edit_subscription() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('manage_wplm_subscriptions')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the subscription management system.'], 501); 
+    }
+    
+    public function ajax_delete_subscription() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('manage_wplm_subscriptions')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the subscription management system.'], 501); 
+    }
+    
+    public function ajax_toggle_status() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('edit_wplm_licenses')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented.'], 501); 
+    }
+    
+    public function ajax_bulk_action() { 
+        check_ajax_referer('wplm_nonce', 'nonce');
+        if (!current_user_can('manage_wplm_licenses')) {
+            wp_send_json_error(['message' => 'Permission denied.'], 403);
+        }
+        wp_send_json_error(['message' => 'Feature not yet implemented. Please use the bulk operations manager.'], 501); 
+    }
 
     // Placeholder render methods
     private function render_licensing_settings() { echo '<p>Advanced licensing settings will be implemented here.</p>'; }

@@ -33,6 +33,9 @@ final class WPLM_API_Manager {
      * Check the API key from the POST data. Terminates on failure.
      */
     private function check_api_key(): void {
+        // Rate limiting check
+        $this->check_rate_limit();
+        
         $api_key = sanitize_text_field($_POST['api_key'] ?? '');
         
         if (is_null($this->stored_api_key)) {
@@ -42,6 +45,50 @@ final class WPLM_API_Manager {
         if (empty($api_key) || empty($this->stored_api_key) || !hash_equals($this->stored_api_key, $api_key)) {
             wp_send_json_error(['message' => 'API key is invalid or missing.'], 403);
         }
+    }
+
+    /**
+     * Simple rate limiting to prevent API abuse
+     */
+    private function check_rate_limit(): void {
+        $client_ip = $this->get_client_ip();
+        $rate_limit_key = 'wplm_rate_limit_' . md5($client_ip);
+        $rate_limit_data = get_transient($rate_limit_key);
+        
+        if ($rate_limit_data === false) {
+            // First request from this IP in the current window
+            set_transient($rate_limit_key, ['count' => 1, 'first_request' => time()], 300); // 5 minute window
+        } else {
+            $rate_limit_data['count']++;
+            
+            // Allow 100 requests per 5 minutes per IP
+            if ($rate_limit_data['count'] > 100) {
+                wp_send_json_error(['message' => 'Rate limit exceeded. Please try again later.'], 429);
+            }
+            
+            set_transient($rate_limit_key, $rate_limit_data, 300);
+        }
+    }
+
+    /**
+     * Get the real client IP address
+     */
+    private function get_client_ip(): string {
+        $ip_keys = ['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR'];
+        
+        foreach ($ip_keys as $key) {
+            if (array_key_exists($key, $_SERVER) === true) {
+                $ip = $_SERVER[$key];
+                if (strpos($ip, ',') !== false) {
+                    $ip = trim(explode(',', $ip)[0]);
+                }
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
+            }
+        }
+        
+        return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 
     /**
@@ -258,8 +305,12 @@ final class WPLM_API_Manager {
             return new WP_Error('missing_params', esc_html__('License key and product ID are required.', 'wplm'));
         }
 
+        // Use title search as license keys are stored as post titles
         $license_posts = get_posts([
-            'post_type' => 'wplm_license', 'title' => $license_key, 'post_status' => 'publish', 'posts_per_page' => 1,
+            'post_type' => 'wplm_license',
+            'title' => $license_key,
+            'post_status' => 'publish',
+            'posts_per_page' => 1,
         ]);
 
         if (empty($license_posts)) {
