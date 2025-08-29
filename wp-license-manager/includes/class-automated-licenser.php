@@ -1,7 +1,4 @@
 <?php
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-
 if (!defined('ABSPATH')) {
     exit;
 }
