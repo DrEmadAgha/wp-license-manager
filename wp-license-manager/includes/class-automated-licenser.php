@@ -159,12 +159,23 @@ class WPLM_Automated_Licenser {
             // Validate each file path in the zip to prevent Zip Slip vulnerability
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $filename = $zip->getNameIndex($i);
-                $filePath = $extraction_path . '/' . $filename;
-                // Sanitize and normalize path for security
-                $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $filePath);
-                $extraction_path_sanitized = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $extraction_path);
-
-                if (strpos(realpath($filePath), realpath($extraction_path_sanitized)) !== 0) {
+                
+                // Check for directory traversal attempts
+                if (strpos($filename, '../') !== false || strpos($filename, '..\\') !== false) {
+                    $zip->close();
+                    self::delete_dir($extraction_path);
+                    wp_send_json_error(['message' => __('Zip file contains malicious paths. Aborting.', 'wp-license-manager')]);
+                }
+                
+                // Normalize path and check it stays within extraction directory
+                $filePath = realpath($extraction_path) . DIRECTORY_SEPARATOR . ltrim($filename, '/\\');
+                $extraction_path_real = realpath($extraction_path);
+                
+                // Use path normalization instead of realpath for non-existent files
+                $filePath_normalized = $this->normalize_path($filePath);
+                $extraction_path_normalized = $this->normalize_path($extraction_path_real);
+                
+                if (strpos($filePath_normalized, $extraction_path_normalized) !== 0) {
                     $zip->close();
                     self::delete_dir($extraction_path);
                     wp_send_json_error(['message' => __('Zip file contains malicious paths. Aborting.', 'wp-license-manager')]);
@@ -641,5 +652,43 @@ if (!defined('WPLM_CLIENT_ITEM_ID')) {
             }
         }
         return $files;
+    }
+
+    /**
+     * Normalize file path for security checks
+     *
+     * @param string $path The path to normalize
+     * @return string Normalized path
+     */
+    private function normalize_path($path) {
+        // Convert to forward slashes and remove any duplicate slashes
+        $path = str_replace('\\', '/', $path);
+        $path = preg_replace('#/+#', '/', $path);
+        
+        // Split path into components
+        $parts = explode('/', $path);
+        $normalized = [];
+        
+        foreach ($parts as $part) {
+            if ($part === '' || $part === '.') {
+                continue;
+            }
+            if ($part === '..') {
+                if (!empty($normalized)) {
+                    array_pop($normalized);
+                }
+            } else {
+                $normalized[] = $part;
+            }
+        }
+        
+        $result = implode('/', $normalized);
+        
+        // Preserve leading slash if original path had one
+        if (strpos($path, '/') === 0) {
+            $result = '/' . $result;
+        }
+        
+        return $result;
     }
 }
